@@ -6,7 +6,6 @@ name = "pypi"
 [packages]
 pygame = "*"
 numpy = "*"
-enum = "*"
 
 [dev-packages]
 
