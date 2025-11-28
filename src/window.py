@@ -1,3 +1,4 @@
+from random import gammavariate
 from tetris import Tetris
 import pygame
 
@@ -22,19 +23,19 @@ class Window:
         self.clock = pygame.time.Clock()
 
     def draw_game(self):
-        for row in range(len(self.game_agent.board) - 1):
-            for col in range(1, len(self.game_agent.board[0]) - 1):
+        for row in range(len(self.game_agent.board) - 2):
+            for col in range(2, len(self.game_agent.board[0]) - 2):
                 # Agent Board
-                if(self.game_agent.board[row][col] == 0):
-                    pygame.draw.rect(self.screen, (0,0,0), (self.AGENT[0] + self.BLOCK_SIZE*col, self.HEIGHT + self.BLOCK_SIZE*row, self.BLOCK_SIZE, self.BLOCK_SIZE), 1)
+                if self.game_agent.board[row][col] == 0:
+                    pygame.draw.rect(self.screen, (0,0,0), (self.AGENT[0] + self.BLOCK_SIZE*(col-2), self.HEIGHT + self.BLOCK_SIZE*row, self.BLOCK_SIZE, self.BLOCK_SIZE), 1)
                 else:
-                    pygame.draw.rect(self.screen, (255,0,0), (self.AGENT[0] + self.BLOCK_SIZE*col, self.HEIGHT + self.BLOCK_SIZE*row, self.BLOCK_SIZE, self.BLOCK_SIZE), 0)
+                    pygame.draw.rect(self.screen, (255,0,0), (self.AGENT[0] + self.BLOCK_SIZE*(col-2), self.HEIGHT + self.BLOCK_SIZE*row, self.BLOCK_SIZE, self.BLOCK_SIZE), 0)
 
                 # Player board
-                if(self.game_player.board[row][col] == 0):
-                    pygame.draw.rect(self.screen, (0,0,0), (self.PLAYER[0] + self.BLOCK_SIZE*col, self.HEIGHT + self.BLOCK_SIZE*row, self.BLOCK_SIZE, self.BLOCK_SIZE), 1)
+                if self.game_player.board[row][col] == 0:
+                    pygame.draw.rect(self.screen, (0,0,0), (self.PLAYER[0] + self.BLOCK_SIZE*(col-2), self.HEIGHT + self.BLOCK_SIZE*row, self.BLOCK_SIZE, self.BLOCK_SIZE), 1)
                 else:
-                    pygame.draw.rect(self.screen, (255,0,0), (self.PLAYER[0] + self.BLOCK_SIZE*col, self.HEIGHT + self.BLOCK_SIZE*row, self.BLOCK_SIZE, self.BLOCK_SIZE), 0)
+                    pygame.draw.rect(self.screen, (255,0,0), (self.PLAYER[0] + self.BLOCK_SIZE*(col-2), self.HEIGHT + self.BLOCK_SIZE*row, self.BLOCK_SIZE, self.BLOCK_SIZE), 0)
     
     def draw_text(self):
         agent_text = self.font.render("Agent", True, (0,0,0))
@@ -44,7 +45,7 @@ class Window:
                 
     def start(self):
         running = True
-        MOVEEVENT, t = pygame.USEREVENT+1, 1000 
+        MOVEEVENT, t = pygame.USEREVENT+1, 500
         pygame.time.set_timer(MOVEEVENT, t)
         while running:
             self.screen.fill("white")
@@ -62,8 +63,8 @@ class Window:
                     elif event.key == pygame.K_s:
                         self.game_player.move_down_piece()
 
-                #if event.type == MOVEEVENT:
-                    #self.game_player.move_down_piece()
+                if event.type == MOVEEVENT:
+                    self.game_player.move_down_piece()
 
             self.draw_game()
             self.draw_text()
