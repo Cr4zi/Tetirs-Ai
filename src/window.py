@@ -22,8 +22,8 @@ class Window:
         self.clock = pygame.time.Clock()
 
     def draw_game(self):
-        for row in range(len(self.game_agent.board)):
-            for col in range(len(self.game_agent.board[0])):
+        for row in range(len(self.game_agent.board) - 1):
+            for col in range(1, len(self.game_agent.board[0]) - 1):
                 # Agent Board
                 if(self.game_agent.board[row][col] == 0):
                     pygame.draw.rect(self.screen, (0,0,0), (self.AGENT[0] + self.BLOCK_SIZE*col, self.HEIGHT + self.BLOCK_SIZE*row, self.BLOCK_SIZE, self.BLOCK_SIZE), 1)
@@ -55,13 +55,15 @@ class Window:
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_r:
                         self.game_player.rotate_piece()
-                    if event.key == pygame.K_a:
+                    elif event.key == pygame.K_a:
                         self.game_player.move_left_piece()
-                    if event.key == pygame.K_d:
+                    elif event.key == pygame.K_d:
                         self.game_player.move_right_piece()
+                    elif event.key == pygame.K_s:
+                        self.game_player.move_down_piece()
 
-                if event.type == MOVEEVENT:
-                    self.game_player.move_down_piece()
+                #if event.type == MOVEEVENT:
+                    #self.game_player.move_down_piece()
 
             self.draw_game()
             self.draw_text()
