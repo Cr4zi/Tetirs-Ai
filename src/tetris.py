@@ -107,9 +107,7 @@ class Tetris:
                 self.clear_up_lines()
                 self.new_next_piece()
                 self._insert_piece()
-                return False
-            else:
-                return False
+            return False
 
         self._remove_piece()
         self.y += 1
