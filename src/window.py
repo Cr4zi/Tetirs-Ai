@@ -1,4 +1,3 @@
-from random import gammavariate
 from tetris import Tetris
 import pygame
 
@@ -46,6 +45,7 @@ class Window:
     def start(self):
         running = True
         MOVEEVENT, t = pygame.USEREVENT+1, 500
+
         pygame.time.set_timer(MOVEEVENT, t)
         while running:
             self.screen.fill("white")
@@ -65,6 +65,7 @@ class Window:
 
                 if event.type == MOVEEVENT:
                     self.game_player.move_down_piece()
+                    self.game_agent.agent_random_move()
 
             self.draw_game()
             self.draw_text()

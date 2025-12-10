@@ -1,6 +1,7 @@
 import numpy as np
 import random
 from enum import Enum
+from queue import Queue
 
 class Hit(Enum):
     NO_HIT = 0
@@ -8,6 +9,11 @@ class Hit(Enum):
     LEFT = 2
     RIGHT = 3
     ALL = 4
+
+class BFS_COLOURS(Enum):
+    DIDNT_VISIT = 0
+    VISIT = 1
+    FINISHED = 2
 
 class Tetris:
     def __init__(self):
@@ -37,12 +43,22 @@ class Tetris:
         self.board.append([1 for _ in range(14)]) # padding down
         self.board = np.array(self.board)
 
-    def _insert_piece(self):
+    def _insert_piece(self, x = None, y = None):
+        if x is None:
+            x = self.x
+        if y is None:
+            y = self.y
+
         for row in range(len(self.cur_piece)):
             for col in range(len(self.cur_piece[0])):
-                self.board[self.y+row][self.x+col] ^= self.cur_piece[row][col]
+                self.board[y+row][x+col] ^= self.cur_piece[row][col]
 
-    def _remove_piece(self):
+    def _remove_piece(self, x = None, y = None):
+        if x is None:
+            x = self.x
+        if y is None:
+            y = self.y
+
         for row in range(len(self.cur_piece)):
             for col in range(len(self.cur_piece[0])):
                 if self.cur_piece[row][col] == 1:
@@ -141,6 +157,43 @@ class Tetris:
         self.next_piece_index = random.randint(0, len(self.pieces)-1)
         self.next_piece = np.array(self.pieces[self.next_piece_index])
 
+    def every_possible_end_move(self, orig_x, orig_y):
+        end_moves = []
+        colours = [[BFS_COLOURS.DIDNT_VISIT for _ in range(10)] for _ in range(20)]
+        q = Queue()
+
+        element = (orig_y, orig_x)
+        y, x = element
+        q.put(element)
+        while not q.empty():
+            colours[y][x] = BFS_COLOURS.VISIT # updating that we finished
+            element = q.get()
+            y, x = element
+
+            down_result = self.can_draw(x, y, Hit.DOWN)
+            if down_result == Hit.NO_HIT and colours[y + 1][x] == BFS_COLOURS.DIDNT_VISIT:
+                q.put((y + 1, x))
+            if self.can_draw(x, y, Hit.LEFT) == Hit.NO_HIT and colours[y][x - 1] == BFS_COLOURS.DIDNT_VISIT:
+                q.put((y, x - 1))
+            if self.can_draw(x, y, Hit.RIGHT) == Hit.NO_HIT and colours[y][x + 1] == BFS_COLOURS.DIDNT_VISIT:
+                q.put((y, x + 1))
+
+            if down_result == Hit.DOWN and colours[y+1][x] == BFS_COLOURS.DIDNT_VISIT:
+                end_moves.append(element)
+
+            colours[y][x] = BFS_COLOURS.FINISHED # updating that we finished the current
+
+        return end_moves
+            
+
     def agent_random_move(self):
-        pass
+        end_moves = self.every_possible_end_move(self.x, self.y)
+        move = random.choice(end_moves)
+        print(end_moves)
+        self._remove_piece()
+        self._insert_piece(move[1], move[0])
+
+        self.clear_up_lines()
+        self.new_next_piece()
+        self._insert_piece()
 
