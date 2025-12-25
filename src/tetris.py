@@ -100,8 +100,13 @@ class Tetris:
 
             row -= 1
                 
-    
-    def rotate_piece(self):
+
+    def can_rotate(self, x = None, y = None):
+        if x is None:
+            x = self.x
+        if y is None:
+            y = self.y
+
         if self.cur_piece_index == 1: # if square don't do anything
             return False
 
@@ -109,13 +114,23 @@ class Tetris:
         self.old_piece = self.cur_piece
         self._remove_piece()
         self.cur_piece = np.rot90(self.cur_piece, -1)
-        if self.can_draw(self.x, self.y, Hit.ALL) != Hit.NO_HIT:
+        if self.can_draw(x, y, Hit.ALL) != Hit.NO_HIT:
             self.cur_piece = self.old_piece
             did_rotate = False
 
-        self._insert_piece()
         return did_rotate
-        
+    
+    def rotate_piece(self, x = None, y = None):
+        if x is None:
+            x = self.x
+        if y is None:
+            y = self.y
+
+        did_rotate = self.can_rotate(x, y)
+        if did_rotate:
+            self._insert_piece()
+
+        return did_rotate
 
     def move_down_piece(self, draw_new=True):
         if self.can_draw(self.x, self.y+1, Hit.DOWN) == Hit.DOWN: 
@@ -157,8 +172,16 @@ class Tetris:
         self.next_piece_index = random.randint(0, len(self.pieces)-1)
         self.next_piece = np.array(self.pieces[self.next_piece_index])
 
+    '''
+    Function that finds every possible end move
+    @param orig_x - original x position of piece
+    @param orig_y - original y position of the piece
+    @param rotation - how many rotation we have done
+    @return every possible end move and its rotation
+    '''
     def every_possible_end_move(self, orig_x, orig_y):
         end_moves = []
+        
         status = [[BFS_STATUS.DIDNT_VISIT for _ in range(10)] for _ in range(20)]
         q = Queue()
 
@@ -169,7 +192,7 @@ class Tetris:
             status[y][x] = BFS_STATUS.VISIT # updating that we finished
             element = q.get()
             x, y = element
-
+        
             down_result = self.can_draw(x, y+1, Hit.DOWN)
             if y < 20 and down_result == Hit.NO_HIT and status[y + 1][x] == BFS_STATUS.DIDNT_VISIT:
                 q.put((x, y + 1))
@@ -192,10 +215,31 @@ class Tetris:
     def agent_random_move(self):
         orig_x = self.x
         orig_y = self.y
-        end_moves = self.every_possible_end_move(self.x, self.y)
-        move = random.choice(end_moves)
+        end_moves = {0: [], 1: [], 2: [], 3: []} 
+        can_rotate = []
+
+        end_moves[0] = self.every_possible_end_move(orig_x, orig_y)
+        can_rotate.append(0)
+        for rot in range(1, 4):
+            if self.rotate_piece(orig_x, orig_y):
+                moves = self.every_possible_end_move(orig_x, orig_y)
+                can_rotate.append(rot)
+
+                for move in moves:
+                    end_moves[rot].append(move)
+            
+        self.rotate_piece(orig_x, orig_y) # returning to original way
+        rot = random.choice(can_rotate)
+        if self.cur_piece_index == 1:
+            x, y = random.choice(end_moves[0])
+        else:
+            x, y = random.choice(end_moves[rot])
+
+        for _ in range(rot):
+            self.rotate_piece(orig_x, orig_y)
+
         self._remove_piece(orig_x, orig_y)
-        self._insert_piece(move[0], move[1])
+        self._insert_piece(x, y)
 
         self.clear_up_lines()
         self.new_next_piece()
