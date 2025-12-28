@@ -2,7 +2,6 @@ import numpy as np
 import random
 from enum import Enum
 from queue import Queue
-import time
 
 class Hit(Enum):
     NO_HIT = 0
@@ -10,6 +9,7 @@ class Hit(Enum):
     LEFT = 2
     RIGHT = 3
     ALL = 4
+    WALL = 5
 
 class BFS_STATUS(Enum):
     DIDNT_VISIT = 0
@@ -79,10 +79,16 @@ class Tetris:
                         return Hit.DOWN
 
                 if (what == Hit.LEFT or what == Hit.ALL) and (col == 0 or self.cur_piece[row][col - 1] == 0):
+                    if col + x < 2:
+                        return Hit.WALL
+
                     if self.board[row + y][col + x] == 1:
                         return Hit.LEFT
 
                 if (what == Hit.RIGHT or what == Hit.ALL) and (col == len(self.cur_piece[0]) - 1 or self.cur_piece[row][col + 1] == 0):
+                    if col + x > 11:
+                        return Hit.WALL
+
                     if self.board[row + y][col + x] == 1:
                         return Hit.RIGHT
 
@@ -132,8 +138,8 @@ class Tetris:
 
         did_rotate = self.can_rotate(x, y)
         if did_rotate:
-            self._remove_piece()
-            self._insert_piece()
+            self._remove_piece(x, y)
+            self._insert_piece(x, y)
 
         return did_rotate
 
@@ -151,7 +157,8 @@ class Tetris:
         return True
 
     def move_right_piece(self):
-        if self.can_draw(self.x + 1, self.y, Hit.RIGHT) == Hit.RIGHT:
+        right = self.can_draw(self.x + 1, self.y, Hit.RIGHT) 
+        if right == Hit.RIGHT or right == Hit.WALL:
             return False
 
         self._remove_piece()
@@ -160,7 +167,8 @@ class Tetris:
         return True
 
     def move_left_piece(self):
-        if self.can_draw(self.x - 1, self.y, Hit.LEFT) == Hit.LEFT:
+        left = self.can_draw(self.x - 1, self.y, Hit.LEFT) 
+        if left == Hit.LEFT or left == Hit.WALL:
             return False
 
         self._remove_piece()
@@ -213,19 +221,14 @@ class Tetris:
 
         return grade
 
-    '''
-    Function that finds every possible end move
-    @param orig_x - original x position of piece
-    @param orig_y - original y position of the piece
-    @param rotation - how many rotation we have done
-    @return every possible end move and its rotation
-    '''
     def every_possible_end_move(self, orig_x, orig_y):
         end_moves = []
 
         self._remove_piece(orig_x, orig_y)
-        
-        status = [[BFS_STATUS.DIDNT_VISIT for _ in range(10)] for _ in range(20)]
+
+        status = [[BFS_STATUS.VISIT if i == 0 or i == 1 or i == 12 or i == 13 else BFS_STATUS.DIDNT_VISIT for i in range(14)] for _ in range(20)]
+        status.append([BFS_STATUS.VISIT for _ in range(14)]) # padding down
+        status.append([BFS_STATUS.VISIT for _ in range(14)]) # padding down
         q = Queue()
 
         element = (orig_x, orig_y)
@@ -237,18 +240,20 @@ class Tetris:
             x, y = element
         
             down_result = self.can_draw(x, y + 1, Hit.DOWN)
+            left_result = self.can_draw(x - 1, y, Hit.LEFT)
+            right_result = self.can_draw(x + 1, y, Hit.RIGHT)
             
             if y < 20 and down_result == Hit.NO_HIT and status[y + 1][x] == BFS_STATUS.DIDNT_VISIT:
                 q.put((x, y + 1))
                 status[y + 1][x] = BFS_STATUS.VISIT
-            if x > 0 and self.can_draw(x - 1, y, Hit.LEFT) == Hit.NO_HIT and status[y][x - 1] == BFS_STATUS.DIDNT_VISIT:
+            if x >= 2 and left_result == Hit.NO_HIT and status[y][x - 1] == BFS_STATUS.DIDNT_VISIT:
                 q.put((x - 1, y))
                 status[y][x - 1] = BFS_STATUS.VISIT
-            if x < 9 and self.can_draw(x + 1, y, Hit.RIGHT) == Hit.NO_HIT and status[y][x + 1] == BFS_STATUS.DIDNT_VISIT:
+            if x <= 11 and right_result == Hit.NO_HIT and status[y][x + 1] == BFS_STATUS.DIDNT_VISIT:
                 q.put((x + 1, y))
                 status[y][x + 1] = BFS_STATUS.VISIT
 
-            if down_result == Hit.DOWN and status[y + 1][x] == BFS_STATUS.DIDNT_VISIT:
+            if down_result == Hit.DOWN and (left_result == Hit.NO_HIT or left_result == Hit.WALL) and (right_result == Hit.NO_HIT or right_result == Hit.WALL):
                 self._insert_piece(x, y)
                 end_moves.append((x, y, self.grade_board()))
                 self._remove_piece(x, y)
@@ -257,8 +262,7 @@ class Tetris:
 
         self._insert_piece(orig_x, orig_y)
         return end_moves
-            
-
+    
     def agent_random_move(self):
         orig_x = self.x
         orig_y = self.y
@@ -272,6 +276,8 @@ class Tetris:
                 for move in moves:
                     end_moves[rot].append(move)
 
+        self._remove_piece(orig_x, orig_y)
+        self.cur_piece = self.pieces[self.cur_piece_index]
 
         # We assume there has to be at least one move
         best_move = end_moves[0][0]
@@ -282,15 +288,13 @@ class Tetris:
                     best_move = move
                     rotation = rot
 
-        for _ in range(rotation):
-            self.rotate_piece(orig_x, orig_y)
-
         x, y = best_move[0], best_move[1]
         for _ in range(rotation):
-            self.rotate_piece(orig_x, orig_y)
+            self.cur_piece = np.rot90(self.cur_piece, -1)
 
-        self._remove_piece(orig_x, orig_y)
         self._insert_piece(x, y)
+        print("*" * 20)
+        print(self.board)
 
         self.clear_up_lines()
         self.new_next_piece()
