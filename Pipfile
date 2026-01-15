@@ -7,6 +7,7 @@ name = "pypi"
 pygame = "*"
 numpy = "*"
 tensorflow = "*"
+torch = "*"
 
 [dev-packages]
 

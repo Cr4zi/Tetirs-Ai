@@ -1,4 +1,6 @@
 from window import Window
+from ai import q_network 
 
-window = Window(False)
-window.start()
+if __name__ == '__main__':
+    window = Window(False)
+    window.start()
